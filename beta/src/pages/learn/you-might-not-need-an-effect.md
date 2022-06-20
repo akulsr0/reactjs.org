@@ -10,11 +10,12 @@ Effects are an escape hatch from the React paradigm. They let you "step outside"
 
 <YouWillLearn>
 
-* Why remove unnecessary Effects from your components
+* Why and how to remove unnecessary Effects from your components
 * How to cache expensive computations without Effects
 * How to reset and adjust component state without Effects
 * How to share logic between event handlers
-* Which logic should be in Effects and which should be in event handlers
+* Which logic should be moved to event handlers
+* How to notify parent components about changes
 
 </YouWillLearn>
 
