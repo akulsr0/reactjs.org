@@ -25,7 +25,7 @@ You *do* need Effects to [synchronize](/learn/synchronizing-with-effects#what-ar
 
 To help you gain the right intuition, let's look at some common concrete examples!
 
-### Updating the state based on other state {/*updating-the-state-based-on-other-state*/}
+### Updating state based on other state {/*updating-state-based-on-other-state*/}
 
 Suppose you have a component with two state variables: `firstName` and `lastName`. You want to calculate a `fullName` from them by concatenating them. Moreover, you'd like `fullName` to update whenever `firstName` or `lastName` change. Your first instinct might be to add a `fullName` state variable and update it in an effect:
 
@@ -137,23 +137,9 @@ Also note that measuring performance in development will not give you the most a
 
 </DeepDive>
 
-### Handling user interactions {/*handling-user-interactions*/}
+### Sharing logic between event handlers {/*sharing-logic-between-event-handlers*/}
 
-Consider a product page with two buttons that both add that product to the shopping cart:
-
-```js
-function ProductPage({ product, addToCart }) {
-  function handleBuyClick() {
-    addToCart(product);
-  }
-
-  function handleCheckoutClick() {
-    addToCart(product);
-    navigateTo('/checkout');
-  }
-```
-
-Let's say you want to show a toast whenever the user puts the product in the cart. Adding the `showToast()` call to both event handlers might feel a bit repetitive so you might be tempted to place this logic in an Effect:
+Let's say you have a product page with two buttons (Buy and Checkout) that add it to the shopping cart. You want to show a notification toast whenever the user puts the product in the cart. Adding the `showToast()` call to both button's click handlers might feel a bit repetitive so you might be tempted to place this logic in an Effect:
 
 ```js {2-7}
 function ProductPage({ product, addToCart }) {
@@ -176,7 +162,7 @@ function ProductPage({ product, addToCart }) {
 
 This Effect is unnecessary. It will also most likely cause bugs. For example, let's say that your app "remembers" the shopping cart between the page reloads. If you add a product to the cart once and refresh the page, the notification toast will appear again. It will keep appearing every time you refresh that product's page. This is because `product.isInCart` will already be `true` on the page load, so the Effect above will call `showToast()`.
 
-Delete the Effect and put the shared logic into a function that you call from both event handlers:
+**When you're not sure whether some code should be in an Effect or in an event handler, ask yourself *why* this code needs to run. Use Effects only for code that should run *because* the component was displayed to the user.** In this example, the toast should appear because the user *pressed the button*, not because the product page was displayed! Delete the Effect and put the shared logic into a function that you call from both event handlers:
 
 ```js {2-6}
 function ProductPage({ product, addToCart }) {
@@ -197,8 +183,6 @@ function ProductPage({ product, addToCart }) {
 ```
 
 This both removes the unnecessary Effect and fixes the bug.
-
-**When you're not sure whether some code should be in an Effect or in an event handler, ask yourself *why* this code needs to run.** Effects are for code that runs *because* the component was displayed to the user. However, in this example, the toast should not appear *because* the product page was displayed! It should appear because the user _pressed the button_. This is why `showToast()` should be called from the event handlers--not from an Effect.
 
 ### Resetting the state on a prop change {/*resetting-the-state-on-a-prop-change*/}
 
