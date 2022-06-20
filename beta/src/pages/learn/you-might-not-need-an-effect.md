@@ -208,6 +208,3 @@ TODO
 
 TODO
 
-
-## Principles for writing Effects {/*principles-for-writing-effects*/}
-
