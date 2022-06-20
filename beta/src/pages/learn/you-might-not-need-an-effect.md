@@ -16,7 +16,7 @@ Effects are an escape hatch from the React paradigm. They let you "step outside"
 
 ## How to remove unnecessary Effects {/*how-to-remove-unnecessary-effects*/}
 
-There are two common situations in which you don't need an Effect:
+There are two common cases in which you don't need an Effect:
 
 * **You don't need Effects for rendering logic.** For example, say you want to filter a list of data before displaying it. You might feel tempted to write an Effect that updates a state variable in response to the data changing. However, this is inefficient. When you update your component's state, React will first call your component functions to calculate what should be on the screen. Then React will ["commit"](/learn/render-and-commit) these changes to the DOM, updating the screen. Then React will run your Effects. If your Effect *also* immediately updates the state, this restarts the whole process from scratch! To avoid the unnecessary render passes, keep all the rendering logic at the top level of your components. It will automatically re-run whenever your props or state change.
 * **You don't need Effects for event-specific logic.** For example, say you want to send an `/api/buy` POST request and show a toast when the user clicks a Buy button on a product. In the Buy button event handlder, you know exactly what happened. By the time an Effect runs, you don't know *what* the user did (for example, which button was clicked). This is why you'll usually handle specific interactions in the event handlers.
@@ -137,10 +137,68 @@ Also note that measuring performance in development will not give you the most a
 
 </DeepDive>
 
-### Handling an interaction {/*handling-an-interaction*/}
+### Handling user interactions {/*handling-user-interactions*/}
 
-TODO
+Consider a product page with two buttons that both add that product to the shopping cart:
 
+```js
+function ProductPage({ product, addToCart }) {
+  function handleBuyClick() {
+    addToCart(product);
+  }
+
+  function handleCheckoutClick() {
+    addToCart(product);
+    navigateTo('/checkout');
+  }
+```
+
+Let's say you want to show a toast whenever the user puts the product in the cart. Adding the `showToast()` call to both event handlers might feel a bit repetitive so you might be tempted to place this logic in an Effect:
+
+```js {2-7}
+function ProductPage({ product, addToCart }) {
+  // 🔴 Bad: Event-specific logic inside an Effect
+  useEffect(() => {
+    if (product.isInCart) {
+      showToast(`Added ${product.name} to the shopping cart!`);
+    }
+  }, [product]);
+
+  function handleBuyClick() {
+    addToCart(product);
+  }
+
+  function handleCheckoutClick() {
+    addToCart(product);
+    navigateTo('/checkout');
+  }
+```
+
+This Effect is unnecessary. It will also most likely cause bugs. For example, let's say that your app "remembers" the shopping cart between the page reloads. If you add a product to the cart once and refresh the page, the notification toast will appear again. It will keep appearing every time you refresh that product's page. This is because `product.isInCart` will already be `true` on the page load, so the Effect above will call `showToast()`.
+
+Delete the Effect and put the shared logic into a function that you call from both event handlers:
+
+```js {2-6}
+function ProductPage({ product, addToCart }) {
+  // ✅ Good: Event-specific logic is called from event handlers
+  function buyProduct() {
+    addToCart(product);
+    showToast(`Added ${product.name} to the shopping cart!`);    
+  }
+
+  function handleBuyClick() {
+    buyProduct();
+  }
+
+  function handleCheckoutClick() {
+    buyProduct();
+    navigateTo('/checkout');
+  }
+```
+
+This both removes the unnecessary Effect and fixes the bug.
+
+**When you're not sure whether some code should be in an Effect or in an event handler, ask yourself *why* this code needs to run.** Effects are for code that runs *because* the component was displayed to the user. However, in this example, the toast should not appear *because* the product page was displayed! It should appear because the user _pressed the button_. This is why `showToast()` should be called from the event handler--not from an Effect.
 
 ### Resetting the state on a prop change {/*resetting-the-state-on-a-prop-change*/}
 
