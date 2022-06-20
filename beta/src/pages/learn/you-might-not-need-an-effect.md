@@ -198,7 +198,7 @@ function ProductPage({ product, addToCart }) {
 
 This both removes the unnecessary Effect and fixes the bug.
 
-**When you're not sure whether some code should be in an Effect or in an event handler, ask yourself *why* this code needs to run.** Effects are for code that runs *because* the component was displayed to the user. However, in this example, the toast should not appear *because* the product page was displayed! It should appear because the user _pressed the button_. This is why `showToast()` should be called from the event handler--not from an Effect.
+**When you're not sure whether some code should be in an Effect or in an event handler, ask yourself *why* this code needs to run.** Effects are for code that runs *because* the component was displayed to the user. However, in this example, the toast should not appear *because* the product page was displayed! It should appear because the user _pressed the button_. This is why `showToast()` should be called from the event handlers--not from an Effect.
 
 ### Resetting the state on a prop change {/*resetting-the-state-on-a-prop-change*/}
 
