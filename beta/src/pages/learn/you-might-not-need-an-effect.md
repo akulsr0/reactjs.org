@@ -10,20 +10,20 @@ Effects are an escape hatch from the React paradigm. They let you "step outside"
 
 <YouWillLearn>
 
-* Why some Effects are unnecessary
 * How to remove unnecessary Effects from your components
 
 </YouWillLearn>
 
 ## How to remove unnecessary Effects {/*how-to-remove-unnecessary-effects*/}
 
-To remove unnecessary Effects, follow these three steps:
+There are two common situations in which you don't need an Effect:
 
-1. **Calculate as much as you can during rendering.** It is a common mistake to write Effects that don't do anything other than updating a state variable in response to another state or a prop changing. This is very inefficient: React has just finished rendering, but an Effect updated the state and restarted the [rendering process](/learn/render-and-commit) from scratch. If you need to calculate something based on props and state, try to do it during rendering instead.
-2. **Move interaction-specific logic into event handlers.** Every interaction begins with an event. In the event handler, you know exactly what happened. By the time an Effect runs, you don't know *what* the user did (for example, which button was clicked). This is why you'll usually handle interactions in the event handlers.
-3. **Keep synchronization logic in Effects, if there is any.** Some logic needs to run *because* the component was rendered. For example, you might keep a non-React widget synchronized with the React state, or keep the React state synchronized with information from the network. In both of these cases, it doesn't matter which interaction caused the state to change. It only matters that the component needs to *remain synchronized* with some external system while it's on the screen. This kind of [synchronization logic](/learn/synchronizing-with-effects#what-are-effects-and-how-are-they-different-from-events) should remain in Effects.
+* **You don't need Effects for rendering logic.** For example, say you want to filter a list of data before displaying it. You might feel tempted to write an Effect that updates a state variable in response to the data changing. However, this is inefficient. When you update your component's state, React will first call your component functions to calculate what should be on the screen. Then React will ["commit"](/learn/render-and-commit) these changes to the DOM, updating the screen. Then React will run your Effects. If your Effect *also* immediately updates the state, this restarts the whole process from scratch! To avoid the unnecessary render passes, keep all the rendering logic at the top level of your components. It will automatically re-run whenever your props or state change.
+* **You don't need Effects for event-specific logic.** For example, say you want to send an `/api/buy` POST request and show a toast when the user clicks a Buy button on a product. In the Buy button event handlder, you know exactly what happened. By the time an Effect runs, you don't know *what* the user did (for example, which button was clicked). This is why you'll usually handle specific interactions in the event handlers.
 
-Sometimes, this may feel more like art than science. The examples below will help you develop the right intuition.
+You *do* need Effects to [synchronize](/learn/synchronizing-with-effects#what-are-effects-and-how-are-they-different-from-events) with external systems. For example, you can write an Effect that keeps a jQuery widget synchronized with the React state. You can also fetch data with Effects: for example, you can synchronize the search results with the current search query. Keep in mind that modern [frameworks](/learn/start-a-new-react-project#building-with-a-full-featured-framework) provide more efficient built-in data fetching mechanisms than writing Effects directly in your components.
+
+To help you gain the right intuition, let's look at some common concrete examples!
 
 ### Updating the state based on other state {/*updating-the-state-based-on-other-state*/}
 
