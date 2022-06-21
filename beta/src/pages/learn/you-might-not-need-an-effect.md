@@ -231,6 +231,8 @@ function List({ items }) {
 
 **This pattern can be hard to understand and is usually best avoided. However, it’s still better than updating state in an Effect.** In the above example, `setSelection` is called directly during a render. In response, React will re-render the `List` right after it exits with a `return` statement. By that point, React hasn't rendered the `List` children or updated the DOM yet, so this lets the `List` children skip rendering the stale `selection` value.
 
+If you omit the early `return` statement, the `List` component will run until it returns the JSX. React will ignore that JSX, and immediately call `List` again. This will happen before React calls any of its children, so the `return` in the example above is not essential. It is, however, essential to have a check like `if (items !== prevItems)` to prevent React from retrying rendering in a loop. See the [API reference](/apis/usestate#storing-information-from-previous-renders) for more details about this pattern.
+
 ### Sharing logic between event handlers {/*sharing-logic-between-event-handlers*/}
 
 Let's say you have a product page with two buttons (Buy and Checkout) that both let you buy that product. You want to show a notification toast whenever the user puts the product in the cart. Adding the `showToast()` call to both button's click handlers feels repetitive so you might be tempted to place this logic in an Effect:
