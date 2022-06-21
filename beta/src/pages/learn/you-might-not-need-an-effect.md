@@ -377,7 +377,7 @@ function Toggle({ isOn, onChange }) {
 }
 ```
 
-["Lifting state up"](/learn/sharing-state-between-components) lets the parent component control whether the `Toggle` is toggled using its own state. This means the parent component will have to contain more logic, but there will be less state overall to worry about. Whenever you try to keep two different state variables synchronized, it's a sign to try lifting state up instead!
+["Lifting state up"](/learn/sharing-state-between-components) lets the parent component fully control the `Toggle` by toggling the parent's own state. This means the parent component will have to contain more logic, but there will be less state overall to worry about. Whenever you try to keep two different state variables synchronized, it's a sign to try lifting state up instead!
 
 <Recap>
 
