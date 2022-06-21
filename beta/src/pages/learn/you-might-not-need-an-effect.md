@@ -543,8 +543,8 @@ If you don't use a framework (and don't want to build your own) but would like t
 
 ```js {4}
 function SearchResults({ query }) {
-  const params = new URLSearchParams({ query, page });
   const [page, setPage] = useState(1); 
+  const params = new URLSearchParams({ query, page });
   const results = useData(`/api/search?${params}`);
 
   function handleNextPageClick() {
