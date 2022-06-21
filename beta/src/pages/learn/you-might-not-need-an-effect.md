@@ -24,13 +24,13 @@ Effects are an escape hatch from the React paradigm. They let you "step outside"
 There are two common cases in which you don't need Effects:
 
 * **You don't need Effects to transform data for rendering.** For example, let's say you want to filter a list before displaying it. You might feel tempted to write an Effect that updates a state variable when the list changes. However, this is inefficient. When you update your component's state, React will first call your component functions to calculate what should be on the screen. Then React will ["commit"](/learn/render-and-commit) these changes to the DOM, updating the screen. Then React will run your Effects. If your Effect *also* immediately updates the state, this restarts the whole process from scratch! To avoid the unnecessary render passes, transform all the data at the top level of your components. That code will automatically re-run whenever your props or state change.
-* **You don't need Effects to handle user events.** For example, let's say you want to send an `/api/buy` POST request and show a notification when the user buys a product. In the Buy button click event handlder, you know exactly what happened. By the time an Effect runs, you don't know *what* the user did (for example, which button was clicked). This is why you'll usually handle user events in the corresponding event handlers.
+* **You don't need Effects to handle user events.** For example, let's say you want to send an `/api/buy` POST request and show a notification when the user buys a product. In the Buy button click event handler, you know exactly what happened. By the time an Effect runs, you don't know *what* the user did (for example, which button was clicked). This is why you'll usually handle user events in the corresponding event handlers.
 
 You *do* need Effects to [synchronize](/learn/synchronizing-with-effects#what-are-effects-and-how-are-they-different-from-events) with external systems. For example, you can write an Effect that keeps a jQuery widget synchronized with the React state. You can also fetch data with Effects: for example, you can synchronize the search results with the current search query. Keep in mind that modern [frameworks](/learn/start-a-new-react-project#building-with-a-full-featured-framework) provide more efficient built-in data fetching mechanisms than writing Effects directly in your components.
 
 To help you gain the right intuition, let's look at some common concrete examples!
 
-### Updating state based on other state {/*updating-state-based-on-other-state*/}
+### Updating state based on props or state {/*updating-state-based-on-props-or-state*/}
 
 Suppose you have a component with two state variables: `firstName` and `lastName`. You want to calculate a `fullName` from them by concatenating them. Moreover, you'd like `fullName` to update whenever `firstName` or `lastName` change. Your first instinct might be to add a `fullName` state variable and update it in an effect:
 
@@ -381,6 +381,201 @@ function Toggle({ isOn, onChange }) {
 
 ["Lifting state up"](/learn/sharing-state-between-components) lets the parent component fully control the `Toggle` by toggling the parent's own state. This means the parent component will have to contain more logic, but there will be less state overall to worry about. Whenever you try to keep two different state variables synchronized, it's a sign to try lifting state up instead!
 
+### Passing data to the parent {/*passing-data-to-the-parent*/}
+
+This `Child` component fetches some data and then passes it to the `Parent` component in an Effect:
+
+```js {9-14}
+function Parent() {
+  const [data, setData] = useState(null);
+  // ...
+  return <Child onFetched={setData} />;
+}
+
+function Child({ onFetched }) {
+  const data = useSomeAPI();
+  // 🔴 Avoid: Passing data to the parent in an Effect
+  useEffect(() => {
+    if (data) {
+      onFetched(data);
+    }
+  }, [onFetched, data]);
+  // ...
+}
+```
+
+In React, data flows from the parent components to their children. When you see something wrong on the screen, you can trace where the information comes from by going up the component chain until you find which component passes the wrong prop or has the wrong state. When child components update the state of their parent components in Effects, the data flow becomes very difficult to trace. Since both the child and the parent component need the same data, let the parent component fetch that data, and *pass it down* to the child instead:
+
+```js {4-5}
+function Parent() {
+  const data = useSomeAPI();
+  // ...
+  // ✅ Good: Passing data down to the child
+  return <Child data={data} />;
+}
+
+function Child({ data }) {
+  // ...
+}
+```
+
+This is simpler and keeps the data flow predictable: the data flows down from the parent to the child.
+
+### Subscribing to an external store {/*subscribing-to-an-external-store*/}
+
+Sometimes, your components may need to subscribe to some data outside of the React state. This data could be from a third-party library or a built-in browser API. Since this data can change without React's knowledge, you need to manually subscribe your components to it. This is often done with an Effect, for example:
+
+```js {2-17}
+function useOnlineStatus() {
+  // Not ideal: Manual store subscription in an Effect
+  const [isOnline, setIsOnline] = useState(true);
+  useEffect(() => {
+    function updateState() {
+      setIsOnline(navigator.onLine);
+    }
+
+    updateState();
+
+    window.addEventListener('online', updateState);
+    window.addEventListener('offline', updateState);
+    return () => {
+      window.removeEventListener('online', updateState);
+      window.removeEventListener('offline', updateState);
+    };
+  }, []);
+  return isOnline;
+}
+
+function ChatIndicator() {
+  const isOnline = oneOnlineStatus();
+  // ...
+}
+```
+
+Here, the component subscribes to an external data store (in this case, the browser `navigator.onLine` API). Since this API does not exist on the server (so it can't be used to generate the initial HTML), initially the state is set to `true`. Whenever the value of that data store changes in the browser, the component updates its state.
+
+Although it's common to use Effects for this, React has a purpose-built Hook for subscribing to an external store that is preferred instead. Delete the Effect and replace it with a call to [`useSyncExternalStore`](/apis/usesyncexternalstore):
+
+```js {11-16}
+function subscribe(callback) {
+  window.addEventListener('online', callback);
+  window.addEventListener('offline', callback);
+  return () => {
+    window.removeEventListener('online', callback);
+    window.removeEventListener('offline', callback);
+  };
+}
+
+function useOnlineStatus() {
+  // ✅ Good: Subscribing to an external store with a built-in Hook
+  return useSyncExternalStore(
+    subscribe, // React won't resubscribe for as long as you pass the same function
+    () => navigator.onLine, // How to get the value on the client
+    () => true // How to get the value on the server
+  );
+}
+
+function ChatIndicator() {
+  const isOnline = useOnlineStatus();
+  // ...
+}
+```
+
+This approach is less error-prone than manually syncing mutable data to React state with an Effect. Typically, you'll write a custom Hook like `useOnlineStatus()` above so that you don't need to repeat this code in the individual components. [Read more about subscribing to external stores from React components.](/apis/usesyncexternalstore)
+
+### Fetching data {/*fetching-data*/}
+
+Many apps use Effects to kick off data fetching. It is quite common to write a data fetching Effect like this:
+
+```js {5-10}
+function SearchResults({ query }) {
+  const [results, setResults] = useState([]);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    // 🔴 Avoid: Fetching without cleanup logic
+    fetchResults(query, page).then(json => {
+      setResults(json);
+    });
+  }, [query, page]);
+
+  function handleNextPageClick() {
+    setPage(page + 1);
+  }
+  // ...
+}
+```
+
+Fetching data is an example of [synchronization:](/learn/synchronizing-with-effects) in this example, you want to synchronize the `results` state with data from the server according to the current `query` and `page`. You want to fetch data because the component is *displayed* rather than in response to any single particular event, so using an Effect to kick it off makes sense.
+
+However, the code above has a bug. Imagine you type `"hello"` fast. Then the `query` will change from `"h"`, to `"he"`, `"hel"`, `"hell"`, and `"hello"`. This will kick off separate fetches, but there is no guarantee about which order the responses will arrive in. For example, the `"hell"`response may arrive *after* the `"hello"` response. Since it will call `setResults()` last, you will be displaying the wrong search results. This is called a ["race condition"](https://en.wikipedia.org/wiki/Race_condition): two different requests "raced" against each other and came in a different order than you expected.
+
+**To fix the race condition, you need to [add a cleanup function](learn/synchronizing-with-effects#fetching-data) to ignore stale responses:**
+
+```js {5,7,9,11-13}
+function SearchResults({ query }) {
+  const [results, setResults] = useState([]);
+  const [page, setPage] = useState(1); 
+  useEffect(() => {
+    let ignore = false;
+    fetchResults(query, page).then(json => {
+      if (!ignore) {
+        setResults(json);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [query, page]);
+
+  function handleNextPageClick() {
+    setPage(page + 1);
+  }
+  // ...
+}
+```
+
+This ensures that when you Effect fetches data, all responses except the last requested one will be ignored.
+
+Handling race conditions is not the only difficulty with implementing data fetching. You might also want to think about how to cache the responses (so that the user can click Back and see the previous screen instantly instead of a spinner), how to fetch them on the server (so that the initial server-rendered HTML contains the fetched content instead of a spinner), and how to avoid network waterfalls (so that a child component that needs to fetch data doesn't have to wait for every parent above it to finish fetching their data before it can start). These issues apply to any UI library, not just React. Solving them is not trivial, which is why modern [frameworks](/learn/start-a-new-react-project#building-with-a-full-featured-framework) provide more efficient built-in data fetching mechanisms than writing Effects directly in your components.
+
+If you don't use a framework (and don't want to build your own) but would like to make data fetching from Effects more ergonomic, consider extracting your fetching logic into a custom Hook like in this example:
+
+```js {4}
+function SearchResults({ query }) {
+  const params = new URLSearchParams({ query, page });
+  const [page, setPage] = useState(1); 
+  const results = useData(`/api/search?${params}`);
+
+  function handleNextPageClick() {
+    setPage(page + 1);
+  }
+  // ...
+}
+
+function useData(url) {
+  const [result, setResult] = useState(null);
+  useEffect(() => {
+    let ignore = false;
+    fetch(url)
+      .then(response => response.json())
+      .then(json => {
+        if (!ignore) {
+          setResult(json);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [url]);
+  return result;
+}
+```
+
+You'll likely also want to add some logic for error handling and to track whether the content is loading. You can build a Hook like this yourself or use one of the many solutions already available in the React ecosystem. **Although this alone won't be as efficient as using a framework's built-in data fetching mechanism, moving the data fetching logic into a custom Hook will make it easier to adopt an efficient data fetching strategy later.**
+
+In general, whenever you have to resort to writing Effects, keep an eye out for when you can extract a piece of functionality into a custom Hook with a more declarative and purpose-built API like `useData` above. The fewer raw `useEffect` calls you have in your components, the easier you will find to maintain your application.
+
 <Recap>
 
 - If you can calculate something during render, you don't need an Effect.
@@ -390,6 +585,7 @@ function Toggle({ isOn, onChange }) {
 - Code that needs to run because a component was *displayed* should be in Effects, the rest should be in events.
 - If you need to update the state of several components, it's better to do it during a single event.
 - Whenever you try to synchronize state variables in different components, consider lifting state up.
+- You can fetch data with Effects, but you need to implement cleanup to avoid race conditions.
 
 </Recap>
 
