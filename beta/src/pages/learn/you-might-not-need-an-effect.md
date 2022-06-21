@@ -21,10 +21,10 @@ Effects are an escape hatch from the React paradigm. They let you "step outside"
 
 ## How to remove unnecessary Effects {/*how-to-remove-unnecessary-effects*/}
 
-There are two common cases in which you don't need an Effect:
+There are two common cases in which you don't need Effects:
 
-* **You don't need Effects for rendering logic.** For example, say you want to filter a list of data before displaying it. You might feel tempted to write an Effect that updates a state variable in response to the data changing. However, this is inefficient. When you update your component's state, React will first call your component functions to calculate what should be on the screen. Then React will ["commit"](/learn/render-and-commit) these changes to the DOM, updating the screen. Then React will run your Effects. If your Effect *also* immediately updates the state, this restarts the whole process from scratch! To avoid the unnecessary render passes, keep all the rendering logic at the top level of your components. It will automatically re-run whenever your props or state change.
-* **You don't need Effects for event-specific logic.** For example, say you want to send an `/api/buy` POST request and show a toast when the user clicks a Buy button on a product. In the Buy button event handlder, you know exactly what happened. By the time an Effect runs, you don't know *what* the user did (for example, which button was clicked). This is why you'll usually handle specific interactions in the event handlers.
+* **You don't need Effects to transform data for rendering.** For example, let's say you want to filter a list before displaying it. You might feel tempted to write an Effect that updates a state variable when the list changes. However, this is inefficient. When you update your component's state, React will first call your component functions to calculate what should be on the screen. Then React will ["commit"](/learn/render-and-commit) these changes to the DOM, updating the screen. Then React will run your Effects. If your Effect *also* immediately updates the state, this restarts the whole process from scratch! To avoid the unnecessary render passes, transform all the data at the top level of your components. It will automatically re-run whenever your props or state change.
+* **You don't need Effects to handle user events.** For example, let's say you want to send an `/api/buy` POST request and show a notification when the user buys a product. In the Buy button click event handlder, you know exactly what happened. By the time an Effect runs, you don't know *what* the user did (for example, which button was clicked). This is why you'll usually handle user events in the corresponding event handlers.
 
 You *do* need Effects to [synchronize](/learn/synchronizing-with-effects#what-are-effects-and-how-are-they-different-from-events) with external systems. For example, you can write an Effect that keeps a jQuery widget synchronized with the React state. You can also fetch data with Effects: for example, you can synchronize the search results with the current search query. Keep in mind that modern [frameworks](/learn/start-a-new-react-project#building-with-a-full-featured-framework) provide more efficient built-in data fetching mechanisms than writing Effects directly in your components.
 
@@ -135,7 +135,7 @@ const visibleTodos = getFilteredTodos(todos, filter);
 console.timeEnd('filter array');
 ```
 
-Perform the interaction you're measuring (for example, typing into the input). You will then see logs like `filter array: 0.15ms` in your console. If the overall logged time adds up to a significant amount (say, `5ms` or more), it might make sense to memoize that calculation. As an experiment, you can then wrap the calculation in `useMemo` to verify whether the total logged time has significantly decreased:
+Perform the interaction you're measuring (for example, typing into the input). You will then see logs like `filter array: 0.15ms` in your console. If the overall logged time adds up to a significant amount (say, `1ms` or more), it might make sense to memoize that calculation. As an experiment, you can then wrap the calculation in `useMemo` to verify whether the total logged time has decreased for that interaction or not:
 
 ```js
 console.time('filter array');
@@ -144,6 +144,8 @@ const visibleTodos = useMemo(() => {
 }, [todos, filter]);
 console.timeEnd('filter array');
 ```
+
+`useMemo` won't make the *first* render faster. It only helps you skip unnecessary work on updates.
 
 Keep in mind that your machine is probably faster than your users' so it's a good idea to test the performance with an artificial slowdown. For example, Chrome offers a [CPU Throttling](https://developer.chrome.com/blog/new-in-devtools-61/#throttling) option for this.
 
@@ -246,7 +248,7 @@ Now there is no need to "adjust" the state at all. If the item with the selected
 
 ### Sharing logic between event handlers {/*sharing-logic-between-event-handlers*/}
 
-Let's say you have a product page with two buttons (Buy and Checkout) that both let you buy that product. You want to show a notification toast whenever the user puts the product in the cart. Adding the `showToast()` call to both button's click handlers feels repetitive so you might be tempted to place this logic in an Effect:
+Let's say you have a product page with two buttons (Buy and Checkout) that both let you buy that product. You want to show a notification [toast](https://uxdesign.cc/toasts-or-snack-bars-design-organic-system-notifications-1236f2883023) whenever the user puts the product in the cart. Adding the `showToast()` call to both button's click handlers feels repetitive so you might be tempted to place this logic in an Effect:
 
 ```js {2-7}
 function ProductPage({ product, addToCart }) {
