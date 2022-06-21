@@ -39,7 +39,7 @@ function Form() {
   const [firstName, setFirstName] = useState('Taylor');
   const [lastName, setLastName] = useState('Swift');
 
-  // 🔴 Bad: redundant state and unnecessary Effect
+  // 🔴 Avoid: redundant state and unnecessary Effect
   const [fullName, setFullName] = useState('');
   useEffect(() => {
     setFullName(firstName + ' ' + lastName);
@@ -70,7 +70,7 @@ This component computes `visibleTodos` by taking the `todos` it receives by prop
 function TodoList({ todos, filter }) {
   const [newTodo, setNewTodo] = useState('');
 
-  // 🔴 Bad: redundant state and unnecessary Effect
+  // 🔴 Avoid: redundant state and unnecessary Effect
   const [visibleTodos, setVisibleTodos] = useState([]);
   useEffect(() => {
     setVisibleTodos(getFilteredTodos(todos, filter));
@@ -161,7 +161,7 @@ This `ProfilePage` component receives a `userId` prop. The page contains a comme
 function ProfilePage({ userId }) {
   const [comment, setComment] = useState('');
 
-  // 🔴 Bad: Resetting state on prop change in an Effect
+  // 🔴 Avoid: Resetting state on prop change in an Effect
   useEffect(() => {
     setComment('');
   }, [userId]);
@@ -203,7 +203,7 @@ function List({ items }) {
   const [isReverse, setIsReverse] = useState(false);
   const [selection, setSelection] = useState(null);
 
-  // 🔴 Bad: Adjusting state on prop change in an Effect
+  // 🔴 Avoid: Adjusting state on prop change in an Effect
   useEffect(() => {
     setSelection(null);
   }, [items]);
@@ -252,7 +252,7 @@ Let's say you have a product page with two buttons (Buy and Checkout) that both 
 
 ```js {2-7}
 function ProductPage({ product, addToCart }) {
-  // 🔴 Bad: Event-specific logic inside an Effect
+  // 🔴 Avoid: Event-specific logic inside an Effect
   useEffect(() => {
     if (product.isInCart) {
       showToast(`Added ${product.name} to the shopping cart!`);
@@ -305,7 +305,7 @@ Let's say you're writing a `Toggle` component with an internal `isOn` state whic
 function Toggle({ onChange }) {
   const [isOn, setIsOn] = useState(false);
 
-  // 🔴 Bad: The onChange handler runs too late
+  // 🔴 Avoid: The onChange handler runs too late
   useEffect(() => {
     onChange(isOn);
   }, [isOn, onChange])
@@ -361,7 +361,7 @@ With this approach, both the `Toggle` component and its parent component update 
 You might also be able to remove the state altogether, and instead receive `isOn` from the parent component:
 
 ```js {1,2}
-// ✅ Good: the component is fully controlled by its parent
+// ✅ Also good: the component is fully controlled by its parent
 function Toggle({ isOn, onChange }) {
   function handleClick() {
     onChange(!isOn);
