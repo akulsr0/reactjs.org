@@ -244,7 +244,7 @@ function List({ items }) {
 }
 ```
 
-Now there is no need to "adjust" the state at all. If the item with the selected ID is in the list, it remains selected. If it's not, the `selection` calculated during rendering will be `null` because no matching item was found. This behavior is a bit different, but arguably it's better because most changes to `items` now preserve the selection.
+Now there is no need to "adjust" the state at all. If the item with the selected ID is in the list, it remains selected. If it's not, the `selection` calculated during rendering will be `null` because no matching item was found. This behavior is a bit different, but arguably it's better because most changes to `items` now preserve the selection. However, you'd need to use `selection` in all the logic below because an item with `selectedId` might not exist.
 
 ### Sharing logic between event handlers {/*sharing-logic-between-event-handlers*/}
 
