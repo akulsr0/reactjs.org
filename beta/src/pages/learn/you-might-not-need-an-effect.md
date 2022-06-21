@@ -352,7 +352,7 @@ function Form() {
 }
 ```
 
-When you choose whether to put some logic into an Effect or an event handler, the main question you need to answer is _what kind of logic_ it is from the user's perspective. If this logic is caused by a particular interaction, keep it in the event handler. If it's caused by the user _seeing_ the component on the screen, keep it in the Effect.
+When you choose whether to put some logic into an event handler or an Effect, the main question you need to answer is _what kind of logic_ it is from the user's perspective. If this logic is caused by a particular interaction, keep it in the event handler. If it's caused by the user _seeing_ the component on the screen, keep it in the Effect.
 
 ### Notifying parent components about state changes {/*notifying-parent-components-about-state-changes*/}
 
