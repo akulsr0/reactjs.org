@@ -504,7 +504,7 @@ function useOnlineStatus() {
 }
 
 function ChatIndicator() {
-  const isOnline = oneOnlineStatus();
+  const isOnline = useOnlineStatus();
   // ...
 }
 ```
